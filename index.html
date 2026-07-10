@@ -516,6 +516,12 @@ async function loadData(){
   try {
     const { data, error } = await sb.from('projects').select('*').order('created_at',{ascending:true});
     if(error) throw error;
+    // 先读 localStorage 作为 progress 补充源（Supabase 可能缺 progress 列）
+    let localMap = {};
+    try {
+      const raw = localStorage.getItem('demo-tracker-data');
+      if(raw){ const local = JSON.parse(raw); local.forEach(p=>{ if(p.progress) localMap[p.id]=p.progress; }); }
+    } catch(ex){}
     // snake_case → camelCase
     projects = (data||[]).map(r=>({
       id:r.id, name:r.name, productType:r.product_type, client:r.client,
@@ -523,14 +529,24 @@ async function loadData(){
       stage:r.stage, priority:r.priority, isPaid:r.is_paid||'', contact:r.contact||'',
       note:r.note||'', reminderDate:r.reminder_date||'', demoDate:r.demo_date||'',
       created:r.created_at||'', lastFollowUp:r.last_follow_up||'',
-      progress:r.progress||null
+      progress:r.progress||localMap[r.id]||null
     }));
+    // 如果有从 localStorage 补回的 progress，写回 Supabase
+    const restored = projects.filter(p=>p.progress && localMap[p.id]);
+    if(restored.length){
+      Promise.all(restored.map(p=>{
+        const row = toSnake(p);
+        return sb.from('projects').upsert(row,{onConflict:'id'});
+      })).then(()=>console.log('已从localStorage恢复'+restored.length+'条progress')).catch(()=>{});
+    }
+    // 更新 localStorage 确保最新
+    localStorage.setItem('demo-tracker-data',JSON.stringify(projects,null,2));
     dot.classList.remove('syncing','error');
     renderAll();
   } catch(e) {
     console.error('加载数据失败:',e);
     dot.classList.remove('syncing');dot.classList.add('error');
-    // 回退到 localStorage（如果 Supabase 不可用）
+    // 回退到 localStorage
     const raw = localStorage.getItem('demo-tracker-data');
     if(raw){try{projects=JSON.parse(raw);renderAll()}catch(ex){}}
   }
