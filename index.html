@@ -9,9 +9,9 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Demo Pipeline</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script src="assets/tailwind.js"></script>
+<script src="assets/supabase.min.js"></script>
+<script src="assets/sortable.min.js"></script>
 <script>
 tailwind.config = {
   theme: {
@@ -32,28 +32,6 @@ tailwind.config = {
 };
 </script>
 <style>
-/* ═══════════════ FONTS ═══════════════ */
-@font-face {
-  font-family: 'Alibaba PuHuiTi';
-  src: url('https://cdn.jsdelivr.net/npm/alibaba-puhuiti@3.0/AlibabaPuHuiTi-3-55-Regular.woff2') format('woff2');
-  font-weight: 400;font-style: normal;font-display: swap;
-}
-@font-face {
-  font-family: 'Alibaba PuHuiTi';
-  src: url('https://cdn.jsdelivr.net/npm/alibaba-puhuiti@3.0/AlibabaPuHuiTi-3-65-Medium.woff2') format('woff2');
-  font-weight: 500;font-style: normal;font-display: swap;
-}
-@font-face {
-  font-family: 'Alibaba PuHuiTi';
-  src: url('https://cdn.jsdelivr.net/npm/alibaba-puhuiti@3.0/AlibabaPuHuiTi-3-75-SemiBold.woff2') format('woff2');
-  font-weight: 600;font-style: normal;font-display: swap;
-}
-@font-face {
-  font-family: 'Alibaba PuHuiTi';
-  src: url('https://cdn.jsdelivr.net/npm/alibaba-puhuiti@3.0/AlibabaPuHuiTi-3-85-Bold.woff2') format('woff2');
-  font-weight: 700;font-style: normal;font-display: swap;
-}
-
 /* ═══════════════ TOKENS ═══════════════ */
 :root {
   --surface-0: #f9f6f0; --surface-1: #ffffff; --surface-2: #f5f2ec; --surface-3: #ece7de;
@@ -335,6 +313,90 @@ tr.od-row:hover td{background:var(--danger-soft)}
 /* ═══════════════ ACCESSIBILITY ═══════════════ */
 :focus-visible{outline:2px solid var(--accent-ring);outline-offset:2px}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+/* ═══════════════ PROGRESS TIMELINE ═══════════════ */
+.progress-view{max-width:720px;margin:0 auto;padding-top:16px}
+.progress-header{display:flex;align-items:center;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+.progress-header select{
+  flex:1;min-width:200px;padding:10px 14px;border-radius:var(--radius);border:1px solid var(--border);
+  background:var(--surface-1);color:var(--text-primary);cursor:pointer;
+  font:var(--fs-body) var(--font);outline:none;
+}
+.progress-header select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.progress-pct-wrap{display:flex;align-items:center;gap:10px;flex:1;min-width:180px}
+.progress-pct{font:700 28px var(--font-mono);color:var(--accent);min-width:52px}
+.progress-bar-outer{flex:1;height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden}
+.progress-bar-inner{height:100%;border-radius:4px;background:var(--accent);transition:width .4s ease-out}
+
+.timeline{padding:0}
+.tl-node{display:grid;grid-template-columns:32px 1fr;grid-template-rows:auto auto;gap:0 16px;position:relative}
+.tl-node:last-child{margin-bottom:0}
+.tl-dot{
+  grid-column:1;grid-row:1;
+  width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:700;position:relative;z-index:2;
+  background:var(--border-strong);color:#fff;border:3px solid var(--border);
+  transition:all var(--ease-out);
+}
+.tl-node.done .tl-dot{background:var(--success);border-color:var(--success)}
+.tl-node.current .tl-dot{background:var(--accent);border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
+@keyframes pulse-dot{0%,100%{box-shadow:0 0 0 4px var(--accent-soft)}50%{box-shadow:0 0 0 10px rgba(196,106,50,.12)}}
+.tl-node.current .tl-dot{animation:pulse-dot 2s ease-in-out infinite}
+.tl-line{grid-column:1;grid-row:1;width:2px;background:var(--border-light);margin:0 auto;z-index:1}
+.tl-node:first-child .tl-line-top{grid-row:1;height:16px;margin-top:-16px}
+.tl-node:last-child .tl-line-bot{display:none}
+.tl-node .tl-line-top{grid-column:1;grid-row:1;width:2px;background:var(--border-light);margin:0 auto 0;height:16px}
+.tl-node .tl-line-bot{grid-column:1;grid-row:2;width:2px;background:var(--border-light);margin:0 auto;min-height:20px}
+.tl-node.done .tl-line-top,.tl-node.done .tl-line-bot{background:var(--success)}
+.tl-node.current .tl-line-bot{background:var(--border-light)}
+
+.tl-content{
+  grid-column:2;grid-row:1;
+  padding:4px 0 0;cursor:pointer;user-select:none;
+  transition:opacity var(--ease-out);
+}
+.tl-content:hover{opacity:.8}
+.tl-label{font-size:var(--fs-h2);font-weight:700;color:var(--text-primary);letter-spacing:-.01em}
+.tl-status{font-size:var(--fs-sm);color:var(--text-muted);margin-top:2px}
+.tl-node.locked .tl-label{color:var(--text-muted)}
+.tl-node.locked .tl-content{cursor:default}.tl-node.locked .tl-content:hover{opacity:1}
+
+.tl-checklist{
+  grid-column:2;grid-row:2;
+  overflow:hidden;max-height:0;opacity:0;
+  transition:max-height .3s ease-out,opacity .2s ease-out,padding .2s ease-out;
+  background:var(--surface-2);border-radius:var(--radius);margin-top:2px;padding:0 16px;
+}
+.tl-checklist.open{max-height:300px;opacity:1;padding:12px 16px;margin-bottom:8px}
+.tl-check-item{
+  display:flex;align-items:center;gap:10px;padding:8px 0;
+  font-size:var(--fs-body);color:var(--text-secondary);cursor:pointer;
+  border-bottom:1px solid var(--hairline);transition:color var(--ease-out);
+  min-height:44px;
+}
+.tl-check-item:last-child{border-bottom:none}
+.tl-check-item:hover{color:var(--text-primary)}
+.tl-check-item.checked{color:var(--success);font-weight:600}
+.tl-check-item.checked .tl-checkbox{background:var(--success);border-color:var(--success)}
+.tl-check-item.checked .tl-checkbox::after{content:'✓';color:#fff;font-size:13px;font-weight:700}
+.tl-check-item.disabled{color:var(--text-muted);cursor:not-allowed;pointer-events:none}
+.tl-check-item.disabled .tl-checkbox{background:var(--surface-3);border-color:var(--border);opacity:.5}
+.tl-checkbox{
+  flex-shrink:0;width:22px;height:22px;border-radius:4px;
+  border:2px solid var(--border-strong);background:var(--surface-1);
+  display:flex;align-items:center;justify-content:center;
+  transition:all var(--ease-out);
+}
+.tl-node.current .tl-check-item:not(.checked):hover .tl-checkbox{border-color:var(--accent);background:var(--accent-soft)}
+
+@media(max-width:767px){
+  .progress-header{flex-direction:column;align-items:stretch;gap:12px}
+  .progress-header select{min-width:auto}
+  .tl-node{grid-template-columns:28px 1fr;gap:0 12px}
+  .tl-dot{width:28px;height:28px;font-size:12px}
+  .tl-label{font-size:var(--fs-body)}
+  .tl-check-item{font-size:var(--fs-sm);padding:10px 0}
+}
 </style>
 </head>
 <body>
@@ -346,6 +408,7 @@ tr.od-row:hover td{background:var(--danger-soft)}
     <button class="nav-btn active" id="btn-kanban" onclick="switchView('kanban')">Demo 看板</button>
     <button class="nav-btn" id="btn-intent" onclick="switchView('intent')">意向客户看板</button>
     <button class="nav-btn" id="btn-table" onclick="switchView('table')">表格</button>
+    <button class="nav-btn" id="btn-progress" onclick="switchView('progress')">🧪 实验进度</button>
     <button class="nav-btn primary" onclick="openModal()">新增项目</button>
     <select class="nav-select" id="filter-type" onchange="onTypeFilterChange()">
       <option value="">全部类型</option>
@@ -383,6 +446,20 @@ tr.od-row:hover td{background:var(--danger-soft)}
   <!-- TABLE -->
   <div class="view" id="view-table"><div class="table-wrap"><table><thead id="thead"></thead><tbody id="tbody"></tbody></table></div></div>
 
+  <!-- PROGRESS VIEW -->
+  <div class="view" id="view-progress" style="display:none">
+    <div class="progress-view">
+      <div class="progress-header">
+        <select class="nav-select" id="progress-project" onchange="renderProgress()" style="max-width:none;flex:1;min-width:200px"></select>
+        <div class="progress-pct-wrap">
+          <span class="progress-pct" id="progress-pct">0%</span>
+          <div class="progress-bar-outer"><div class="progress-bar-inner" id="progress-bar"></div></div>
+        </div>
+      </div>
+      <div class="timeline" id="timeline"></div>
+    </div>
+  </div>
+
   <!-- MODAL -->
   <div class="modal-mask" id="modal-mask" onclick="if(event.target===this)closeModal()">
     <div class="modal" id="modal"><h2 id="modal-title">新建项目</h2><form id="modal-form"></form></div>
@@ -408,6 +485,17 @@ const CLIENT_TYPES = ['Demo（客户端）','Demo（公司端）','意向客户'
 const ALL_STAGES = [...new Set(Object.values(STAGE_MAP).flat())];
 const CLOSED_STAGES = ['已中标','项目成功','实验失败','搁置'];
 const DEMO_TYPES = ['Demo（客户端）','Demo（公司端）'];
+const PROGRESS_STAGES = ['客户沟通','物料寄送','抗原信息','免疫信息','合同签订','项目打款','实验进行中','实验已完成'];
+const PROGRESS_ITEMS = {
+  '客户沟通': ['初步对接完成','技术交流完成','确认客户需求','确定实验方案'],
+  '物料寄送': ['确认收货地址','确认物料清单 BOM','寄出抗原/试剂盒','客户确认收货'],
+  '抗原信息': ['确认抗原信息表','确认抗原保存条件','确认抗原数量','抗原已送达实验室'],
+  '免疫信息': ['确认免疫方案','确认免疫周期','血清效价检测','效价达标确认'],
+  '合同签订': ['草拟合同','内部审批','客户确认合同','双方盖章完成'],
+  '项目打款': ['确认开票信息','发票已开具','客户确认收到发票','款项到账'],
+  '实验进行中': ['实验排期确认','实验启动','中期进度汇报','数据初步分析'],
+  '实验已完成': ['最终数据交付','客户验收确认','项目总结报告','后续合作意向']
+};
 const INTENT_PRODUCTS = [
   '高通量单细胞光导系统 LyKIPP','高通量单细胞光导系统 LyPLEX','高通量单细胞光导系统 LyTARs',
   '全光谱流式细胞仪 OMNIS Spector-5','全光谱流式细胞仪 OMNIS Spector-4','全光谱流式细胞仪 OMNIS Spector-3',
@@ -434,7 +522,8 @@ async function loadData(){
       orgUnit:r.org_unit, clientType:r.client_type, clientPriority:r.client_priority,
       stage:r.stage, priority:r.priority, isPaid:r.is_paid||'', contact:r.contact||'',
       note:r.note||'', reminderDate:r.reminder_date||'', demoDate:r.demo_date||'',
-      created:r.created_at||'', lastFollowUp:r.last_follow_up||''
+      created:r.created_at||'', lastFollowUp:r.last_follow_up||'',
+      progress:r.progress||null
     }));
     dot.classList.remove('syncing','error');
     renderAll();
@@ -481,7 +570,8 @@ function toSnake(p){
     org_unit:p.orgUnit, client_type:p.clientType, client_priority:p.clientPriority,
     stage:p.stage, priority:p.priority, is_paid:p.isPaid||'', contact:p.contact||'',
     note:p.note||'', reminder_date:p.reminderDate||'', demo_date:p.demoDate||'',
-    created_at:p.created||'', last_follow_up:p.lastFollowUp||''
+    created_at:p.created||'', last_follow_up:p.lastFollowUp||'',
+    progress:p.progress||null
   };
 }
 
@@ -728,16 +818,125 @@ function updateField(id,field,value){
 
 function sortBy(k){projects.sort((a,b)=>(a[k]||'')>(b[k]||'')?1:-1);renderAll()}
 
-/* ═══════════════ VIEW SWITCH ═══════════════ */
+/* ═══════════════ PROGRESS VIEW ═══════════════ */
+function getDefaultProgress(){
+  const p={};
+  PROGRESS_STAGES.forEach(s=>{
+    p[s]={done:false,date:'',items:Array(PROGRESS_ITEMS[s].length).fill(false)};
+  });
+  return p;
+}
+
+function getProgressData(project){
+  if(!project.progress||typeof project.progress!=='object')return getDefaultProgress();
+  const p={};
+  PROGRESS_STAGES.forEach(s=>{
+    const src=project.progress[s];
+    p[s]=src&&typeof src==='object'?{
+      done:!!src.done,
+      date:src.date||'',
+      items:Array.isArray(src.items)?src.items.slice(0,PROGRESS_ITEMS[s].length):Array(PROGRESS_ITEMS[s].length).fill(false)
+    }:getDefaultProgress()[s];
+  });
+  return p;
+}
+
+function progressPct(pd){
+  const total=PROGRESS_STAGES.length*4;
+  let done=0;
+  PROGRESS_STAGES.forEach(s=>{pd[s].items.forEach(d=>{if(d)done++})});
+  return Math.round(done/total*100);
+}
+
+function currentStageIndex(pd){
+  for(let i=0;i<PROGRESS_STAGES.length;i++){
+    const s=PROGRESS_STAGES[i];
+    if(!pd[s].done||pd[s].items.some(v=>!v))return i;
+  }
+  return PROGRESS_STAGES.length-1;
+}
+
+function renderProgress(){
+  const sel=document.getElementById('progress-project');
+  // 只显示 Demo 类型项目
+  const demos=projects.filter(p=>DEMO_TYPES.includes(p.clientType));
+  sel.innerHTML=demos.length===0?'<option value="">暂无 Demo 项目</option>':
+    '<option value="">请选择项目</option>'+demos.map(p=>`<option value="${p.id}" ${sel.value===p.id?'selected':''}>${p.name} — ${p.orgUnit||p.client||''}</option>`).join('');
+
+  const id=sel.value;
+  if(!id){document.getElementById('timeline').innerHTML='<div class="empty-state"><div class="icon">🧪</div><p>选择一个项目查看实验进度</p></div>';document.getElementById('progress-pct').textContent='0%';document.getElementById('progress-bar').style.width='0%';return}
+
+  const pj=projects.find(p=>p.id===id);
+  if(!pj){renderProgress();return}
+
+  const pd=getProgressData(pj);
+  const pct=progressPct(pd);
+  document.getElementById('progress-pct').textContent=pct+'%';
+  document.getElementById('progress-bar').style.width=pct+'%';
+
+  const curI=currentStageIndex(pd);
+  let html='';
+  PROGRESS_STAGES.forEach((s,i)=>{
+    const d=pd[s];
+    let cls='tl-node';
+    if(d.done&&d.items.every(v=>v))cls+=' done';
+    else if(i===curI)cls+=' current';
+    else if(i>curI)cls+=' locked';
+    else if(d.items.some(v=>v))cls+=' current';
+    else cls+=' locked';
+
+    html+=`<div class="${cls}"><div class="tl-line-top"></div><div class="tl-dot">${d.done&&d.items.every(v=>v)?'✓':i<curI?'○':i===curI?(i+1):'🔒'}</div><div class="tl-line-bot"></div>`;
+    html+=`<div class="tl-content" onclick="toggleChecklist(this,'${pj.id}','${s.replace(/'/g,"\\'")}')"><div class="tl-label">${s}</div><div class="tl-status">${d.done&&d.date?'已完成 '+d.date:d.items.some(v=>v)?'进行中 · '+d.items.filter(v=>v).length+'/'+d.items.length:''}</div></div>`;
+
+    const items=PROGRESS_ITEMS[s];
+    const open=(i===curI)||(d.items.some(v=>v)&&!d.done);
+    html+=`<div class="tl-checklist${open?' open':''}">`;
+    items.forEach((item,j)=>{
+      const checked=d.items[j];
+      const disabled=i>curI||(i<curI&&d.done);
+      html+=`<div class="tl-check-item${checked?' checked':''}${disabled&&!checked?' disabled':''}" onclick="event.stopPropagation();toggleProgressItem('${pj.id}','${s.replace(/'/g,"\\'")}',${j},${disabled})"><span class="tl-checkbox"></span>${item}</div>`;
+    });
+    html+='</div></div>';
+  });
+  document.getElementById('timeline').innerHTML=html;
+}
+
+function toggleChecklist(el,pid,stage){
+  const checklist=el.parentElement.querySelector('.tl-checklist');
+  if(!checklist)return;
+  const node=el.parentElement;
+  if(node.classList.contains('locked'))return;
+  checklist.classList.toggle('open');
+}
+
+function toggleProgressItem(pid,stage,idx,disabled){
+  if(disabled)return;
+  const pj=projects.find(p=>p.id===pid);if(!pj)return;
+  if(!pj.progress||typeof pj.progress!=='object')pj.progress=getDefaultProgress();
+  if(!pj.progress[stage])pj.progress[stage]={done:false,date:'',items:Array(PROGRESS_ITEMS[stage].length).fill(false)};
+  pj.progress[stage].items[idx]=!pj.progress[stage].items[idx];
+  // 自动推导 done 和 date
+  const allDone=pj.progress[stage].items.every(v=>v);
+  if(allDone&&!pj.progress[stage].done){
+    pj.progress[stage].done=true;
+    pj.progress[stage].date=pj.progress[stage].date||today();
+  }else if(!allDone&&pj.progress[stage].done){
+    pj.progress[stage].done=false;
+    pj.progress[stage].date='';
+  }
+  saveData(pj).then(()=>{renderProgress();renderAll()});
+}
 function switchView(v){
   view=v;
   document.getElementById('view-kanban').style.display=v==='kanban'?'block':'none';
   document.getElementById('view-intent').style.display=v==='intent'?'block':'none';
   document.getElementById('view-table').style.display=v==='table'?'block':'none';
+  document.getElementById('view-progress').style.display=v==='progress'?'block':'none';
   document.getElementById('btn-kanban').classList.toggle('active',v==='kanban');
   document.getElementById('btn-intent').classList.toggle('active',v==='intent');
   document.getElementById('btn-table').classList.toggle('active',v==='table');
-  renderAll()
+  document.getElementById('btn-progress').classList.toggle('active',v==='progress');
+  if(v==='progress')renderProgress();else renderAll()
 }
 
 /* ═══════════════ MODAL ═══════════════ */
