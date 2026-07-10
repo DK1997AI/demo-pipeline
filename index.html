@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Demo Pipeline</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        accent: '#c46a32', 'accent-hover': '#a85529', 'accent-soft': '#fdf3e8',
+        'surface-0': '#f9f6f0', 'surface-1': '#ffffff', 'surface-2': '#f5f2ec',
+        'text-primary': '#1e1b18', 'text-secondary': '#6b6560', 'text-muted': '#9c9590',
+        danger: '#b8453a', 'danger-soft': '#fdf3f2', warning: '#b0782c', 'warning-soft': '#fdf6ed',
+        success: '#3d7a4f', 'success-soft': '#eef5ef',
+      },
+      fontFamily: {
+        sans: ["Alibaba PuHuiTi","PingFang SC","Microsoft YaHei","system-ui","sans-serif"],
+        mono: ["SF Mono","JetBrains Mono","Consolas","monospace"],
+      },
+    },
+  },
+};
+</script>
+<style>
+/* ═══════════════ FONTS ═══════════════ */
+@font-face {
+  font-family: 'Alibaba PuHuiTi';
+  src: url('https://cdn.jsdelivr.net/npm/alibaba-puhuiti@3.0/AlibabaPuHuiTi-3-55-Regular.woff2') format('woff2');
+  font-weight: 400;font-style: normal;font-display: swap;
+}
+@font-face {
+  font-family: 'Alibaba PuHuiTi';
+  src: url('https://cdn.jsdelivr.net/npm/alibaba-puhuiti@3.0/AlibabaPuHuiTi-3-65-Medium.woff2') format('woff2');
+  font-weight: 500;font-style: normal;font-display: swap;
+}
+@font-face {
+  font-family: 'Alibaba PuHuiTi';
+  src: url('https://cdn.jsdelivr.net/npm/alibaba-puhuiti@3.0/AlibabaPuHuiTi-3-75-SemiBold.woff2') format('woff2');
+  font-weight: 600;font-style: normal;font-display: swap;
+}
+@font-face {
+  font-family: 'Alibaba PuHuiTi';
+  src: url('https://cdn.jsdelivr.net/npm/alibaba-puhuiti@3.0/AlibabaPuHuiTi-3-85-Bold.woff2') format('woff2');
+  font-weight: 700;font-style: normal;font-display: swap;
+}
+
+/* ═══════════════ TOKENS ═══════════════ */
+:root {
+  --surface-0: #f9f6f0; --surface-1: #ffffff; --surface-2: #f5f2ec; --surface-3: #ece7de;
+  --text-primary: #1e1b18; --text-secondary: #6b6560; --text-muted: #9c9590;
+  --accent: #c46a32; --accent-soft: #fdf3e8; --accent-hover: #a85529; --accent-ring: rgba(196,106,50,0.35);
+  --danger: #b8453a; --danger-soft: #fdf3f2;
+  --warning: #b0782c; --warning-soft: #fdf6ed;
+  --success: #3d7a4f; --success-soft: #eef5ef;
+  --info: #4a6d8c; --info-soft: #eef3f7;
+  --border: #e8e2d8; --border-strong: #d5cec2; --border-light: #f0ebe3; --hairline: #f2ede5;
+  --radius-sm: 4px; --radius: 6px; --radius-lg: 10px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.04),0 1px 2px rgba(0,0,0,.03);
+  --shadow: 0 4px 16px rgba(0,0,0,.07),0 1px 4px rgba(0,0,0,.05);
+  --shadow-lg: 0 20px 60px rgba(0,0,0,.12),0 4px 16px rgba(0,0,0,.06);
+  --font: 'Alibaba PuHuiTi','PingFang SC','Microsoft YaHei','Hiragino Sans GB','Noto Sans SC',system-ui,-apple-system,sans-serif;
+  --font-mono: 'SF Mono','JetBrains Mono','Cascadia Code','Consolas',monospace;
+  --fs-brand: 26px; --fs-h1: 19px; --fs-h2: 18px; --fs-body: 16px; --fs-sm: 15px; --fs-xs: 14px; --fs-tag: 14px;
+  --ease-out: 0.18s ease-out; --ease-in: 0.12s ease-in;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html{background:var(--surface-0);font-size:16px;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{
+  font:var(--fs-body)/1.55 var(--font);color:var(--text-primary);
+  background:var(--surface-0);min-height:100vh;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+}
+
+/* ═══════════════ LAYOUT ═══════════════ */
+.app{max-width:96vw;margin:0 auto;padding:0 20px 80px}
+
+/* ═══════════════ NAV ═══════════════ */
+.nav{
+  position:sticky;top:0;z-index:100;
+  display:flex;align-items:center;gap:12px;
+  padding:var(--fs-body) 20px;margin:0 -20px;
+  background:var(--surface-1);
+  border-bottom:1px solid var(--border);
+  box-shadow:var(--shadow-sm);
+}
+.nav-brand{display:flex;align-items:center;gap:10px;margin-right:auto;font-size:var(--fs-brand);font-weight:700;letter-spacing:-.01em;color:var(--text-primary)}
+.nav-brand .dot{width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.nav-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 16px;border-radius:var(--radius);border:1px solid var(--border);
+  background:var(--surface-1);color:var(--text-secondary);cursor:pointer;
+  font:var(--fs-sm) var(--font);font-weight:600;transition:all var(--ease-out);white-space:nowrap;
+}
+.nav-btn:hover{background:var(--surface-2);color:var(--text-primary);border-color:var(--border-strong)}
+.nav-btn.active{background:var(--accent-soft);color:var(--accent);border-color:var(--accent);font-weight:700}
+.nav-btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}
+.nav-btn.primary:hover{background:var(--accent-hover);border-color:var(--accent-hover);opacity:1}
+.nav-btn:active{transform:scale(.98)}
+.nav-select{
+  padding:7px 12px;border-radius:var(--radius);border:1px solid var(--border);
+  background:var(--surface-1);color:var(--text-secondary);cursor:pointer;
+  font:var(--fs-body) var(--font);max-width:140px;outline:none;
+}
+.nav-select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.nav-spacer{flex:0 0 4px}
+.nav-badge{
+  display:inline-flex;align-items:center;gap:4px;padding:4px 10px;
+  border-radius:20px;font-size:var(--fs-body);font-weight:600;
+}
+.nav-badge.danger{background:var(--danger-soft);color:var(--danger)}
+.nav-badge.warn{background:var(--warning-soft);color:var(--warning)}
+.nav-time{font:var(--fs-body) var(--font-mono);color:var(--text-muted);margin-left:4px}
+
+/* ═══════════════ STAGE INDICATOR (MOBILE) ═══════════════ */
+.stage-indicator{
+  display:none;
+  overflow-x:auto;gap:8px;padding:12px 0;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+}
+.stage-indicator::-webkit-scrollbar{display:none}
+.stage-pill{
+  flex-shrink:0;padding:6px 14px;border-radius:20px;border:1px solid var(--border);
+  background:var(--surface-1);color:var(--text-secondary);cursor:pointer;
+  font:600 var(--fs-sm) var(--font);transition:all var(--ease-out);white-space:nowrap;
+}
+.stage-pill:hover{background:var(--surface-2);color:var(--text-primary)}
+.stage-pill.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.stage-pill .pill-count{font-weight:400;opacity:.8;margin-left:2px}
+
+/* ═══════════════ ALERT STRIP ═══════════════ */
+.alert-strip{display:flex;gap:var(--fs-body);padding:20px 0;flex-wrap:wrap}
+.alert-card{
+  flex:1;min-width:220px;padding:16px 20px;border-radius:var(--radius-lg);
+  border:1px solid var(--border);background:var(--surface-1);
+  box-shadow:var(--shadow-sm);transition:border-color var(--ease-out),box-shadow var(--ease-out);
+}
+.alert-card:hover{border-color:var(--border-light);box-shadow:var(--shadow)}
+.alert-card h4{font-size:var(--fs-h1);font-weight:700;margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em}
+.alert-card ul{list-style:none}
+.alert-card li{padding:7px 0;font-size:var(--fs-body);color:var(--text-secondary);border-bottom:1px solid var(--hairline)}
+.alert-card li:last-child{border:none}
+.alert-card li b{color:var(--text-primary);font-weight:600}
+.alert-card.danger{border-left:3px solid var(--danger)}.alert-card.danger h4{color:var(--danger)}
+.alert-card.warn{border-left:3px solid var(--warning)}.alert-card.warn h4{color:var(--warning)}
+.alert-card.info{border-left:3px solid var(--accent)}.alert-card.info h4{color:var(--accent)}
+
+/* ═══════════════ KANBAN ═══════════════ */
+.kanban{display:flex;gap:16px;overflow-x:auto;padding:4px 0 24px;min-height:calc(100vh - 220px)}
+.kanban-col{
+  flex:1;min-width:220px;
+  background:var(--surface-1);border-radius:var(--radius-lg);
+  border:1px solid var(--border);padding:var(--fs-body);
+  display:flex;flex-direction:column;
+}
+.kanban-col h3{
+  font-size:var(--fs-h1);font-weight:700;text-transform:uppercase;letter-spacing:.04em;
+  color:var(--text-primary);margin-bottom:14px;
+  display:flex;justify-content:space-between;align-items:center;
+  padding-bottom:12px;border-bottom:1px solid var(--hairline);
+}
+.kanban-col h3 .count{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;border-radius:999px;font-size:var(--fs-xs);font-weight:700;color:#fff;background:var(--accent)}
+.kanban-col h3 .count.zero{background:var(--text-muted)}
+.kanban-cards{flex:1;min-height:50px;overflow-y:auto}
+.kanban-cards:empty::after{
+  content:'拖放项目到此';display:flex;align-items:center;justify-content:center;
+  height:60px;font-size:var(--fs-sm);color:var(--text-muted);
+  border:1.5px dashed var(--border);border-radius:var(--radius-sm);
+  background:var(--surface-2);
+}
+
+/* ═══════════════ CARD ═══════════════ */
+.card{
+  background:var(--surface-1);border:1px solid var(--border-light);
+  border-radius:var(--radius);padding:var(--fs-body) var(--fs-sm);margin-bottom:var(--fs-sm);
+  cursor:pointer;transition:border-color var(--ease-out),box-shadow var(--ease-out),transform var(--ease-out);
+  position:relative;box-shadow:var(--shadow-sm);
+}
+.card:hover{border-color:var(--border);box-shadow:var(--shadow);transform:translateY(-1px)}
+.card:active{transform:scale(.985)}
+.card.dragging{opacity:.4;transform:scale(.96)}
+.card .c-name{font-size:var(--fs-h2);font-weight:700;line-height:1.3;margin-bottom:4px;color:var(--text-primary)}
+.card .c-client{font-size:var(--fs-sm);color:var(--text-muted);margin-bottom:7px}
+.card .c-product{font-size:var(--fs-sm);color:var(--text-secondary);font-weight:500;margin-bottom:4px}
+.card .c-meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.tag{display:inline-flex;align-items:center;padding:2px 8px;font-size:var(--fs-tag);font-weight:600;line-height:1.5;border-radius:var(--radius-sm);white-space:nowrap;letter-spacing:.01em;background:var(--hairline);color:var(--text-muted);border:1px solid var(--border-light)}
+.tag.accent{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+.tag.high{background:var(--danger-soft);color:var(--danger);border-color:transparent}
+.tag.mid{background:var(--warning-soft);color:var(--warning);border-color:transparent}
+.tag.success{background:var(--success-soft);color:var(--success);border-color:transparent}
+.card .c-dates{font-size:var(--fs-xs);line-height:1.7;color:var(--text-muted)}
+.card .c-dates span{display:inline-block}
+.card .c-dates .od{color:var(--danger);font-weight:600}
+.card .c-dates .sn{color:var(--warning);font-weight:600}
+.card .c-actions{display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--hairline)}
+.card .c-actions button,.card .c-actions select{
+  flex:1;font-size:var(--fs-xs);padding:5px 0;border-radius:var(--radius-sm);
+  border:1px solid var(--border-light);background:var(--surface-2);
+  color:var(--text-secondary);cursor:pointer;transition:all var(--ease-out);font-weight:600;
+  font-family:var(--font);text-align:center;
+}
+.card .c-actions button:hover,.card .c-actions select:hover{background:var(--surface-3);color:var(--text-primary);border-color:var(--border-strong)}
+.card .c-actions button:active{transform:scale(.98)}
+.card .c-actions .move-select{display:none}
+.card .c-actions .ctrl-btn{display:inline-flex;align-items:center;justify-content:center}
+
+/* ═══════════════ TABLE ═══════════════ */
+.table-wrap{overflow-x:auto;border-radius:var(--radius-lg);border:1px solid var(--border);box-shadow:var(--shadow-sm)}
+table{width:100%;border-collapse:collapse;background:var(--surface-1);font-size:var(--fs-sm)}
+th{padding:12px 16px;text-align:left;font-size:var(--fs-xs);font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);background:var(--surface-2);border-bottom:2px solid var(--border);cursor:pointer;user-select:none;position:sticky;top:0;z-index:5}
+th:hover{color:var(--text-primary)}
+td{padding:12px 16px;border-bottom:1px solid var(--hairline);white-space:nowrap;font-size:var(--fs-sm);font-variant-numeric:tabular-nums}
+tr:hover td{background:var(--hairline)}
+tr.od-row td{background:var(--danger-soft)}
+tr.od-row:hover td{background:var(--danger-soft)}
+
+/* ═══════════════ MODAL ═══════════════ */
+.modal-mask{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center}
+.modal-mask.show{display:flex}
+.modal{background:var(--surface-1);border:1px solid var(--border-strong);border-radius:var(--radius-lg);padding:28px 28px 24px;width:92%;max-width:680px;max-height:85vh;overflow-y:auto;box-shadow:var(--shadow-lg)}
+.modal h2{font-size:20px;font-weight:700;margin-bottom:24px;letter-spacing:-.01em;color:var(--text-primary)}
+.modal .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.modal .form-grid .full{grid-column:1/-1}
+.modal label{display:block;font-size:var(--fs-xs);font-weight:600;margin-bottom:5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+.modal input,.modal select,.modal textarea{width:100%;padding:10px 13px;border:1px solid var(--border);border-radius:var(--radius);font:var(--fs-body) var(--font);color:var(--text-primary);background:var(--surface-1);transition:border var(--ease-out),box-shadow var(--ease-out);outline:none}
+.modal input:focus,.modal select:focus,.modal textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.modal textarea{resize:vertical;min-height:80px}
+.modal .form-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:24px;padding-top:18px;border-top:1px solid var(--hairline)}
+.modal .form-actions button{padding:10px 24px;border-radius:var(--radius);font:var(--fs-body) var(--font);cursor:pointer;transition:all var(--ease-out);font-weight:600;min-height:44px}
+.modal .btn-cancel{background:var(--surface-2);border:1px solid var(--border);color:var(--text-secondary)}
+.modal .btn-cancel:hover{background:var(--surface-3);color:var(--text-primary)}
+.modal .btn-save{background:var(--accent);color:#fff;border:none}
+.modal .btn-save:hover{background:var(--accent-hover)}
+.modal .btn-delete{background:transparent;color:var(--danger);border:1px solid var(--danger);margin-right:auto}
+.modal .btn-delete:hover{background:var(--danger-soft)}
+
+/* ═══════════════ FAB ═══════════════ */
+.fab{display:none;position:fixed;bottom:24px;right:20px;z-index:150;width:56px;height:56px;border-radius:50%;background:var(--accent);color:#fff;border:none;cursor:pointer;font-size:28px;line-height:56px;text-align:center;box-shadow:0 4px 20px rgba(196,106,50,.4);transition:transform var(--ease-out),background var(--ease-out);-webkit-tap-highlight-color:transparent}
+.fab:active{transform:scale(.92)}
+.fab:hover{background:var(--accent-hover)}
+
+/* ═══════════════ PERMISSION BAR ═══════════════ */
+.permission-bar{display:none;align-items:center;justify-content:space-between;padding:12px 18px;margin:14px 0;border-radius:var(--radius);background:var(--warning-soft);border:1px solid rgba(176,120,44,.2);font-size:var(--fs-sm);color:var(--warning)}
+.permission-bar button{padding:6px 16px;border-radius:var(--radius-sm);background:var(--warning);color:#fff;border:none;cursor:pointer;font:var(--fs-sm) var(--font);font-weight:600;transition:opacity var(--ease-out);min-height:44px}
+.permission-bar button:hover{opacity:.85}.permission-bar button:active{transform:scale(.98)}
+
+/* ═══════════════ EMPTY STATE ═══════════════ */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:48px 20px;color:var(--text-muted)}
+.empty-state .icon{font-size:48px;margin-bottom:16px;opacity:.5}
+
+/* ═══════════════ TABLE DELETE ═══════════════ */
+.tbl-del-btn{padding:3px 10px;border-radius:var(--radius-sm);border:1px solid var(--danger);background:transparent;color:var(--danger);cursor:pointer;font:var(--fs-xs) var(--font);font-weight:600;transition:all var(--ease-out);min-height:36px}
+.tbl-del-btn:hover{background:var(--danger-soft)}.tbl-del-btn:active{transform:scale(.97)}
+
+/* ═══════════════ SYNC STATUS ═══════════════ */
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#3d7a4f;flex-shrink:0}
+.sync-dot.syncing{background:#b0782c;animation:pulse .8s ease-in-out infinite}
+.sync-dot.error{background:#b8453a}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ═══════════════ RESPONSIVE ═══════════════ */
+@media(max-width:1200px){.kanban{flex-wrap:wrap}.kanban-col{min-width:180px}}
+
+/* ── MOBILE (< 768px) ── */
+@media(max-width:767px){
+  .app{padding:0 12px 100px}
+  .nav{padding:10px 12px;margin:0 -12px;gap:6px;flex-wrap:wrap}
+  .nav-brand{font-size:18px;gap:6px}.nav-brand .dot{width:6px;height:6px}
+  .nav-btn{font-size:13px;padding:6px 10px}.nav-btn.primary{display:none}
+  .nav-select{font-size:13px;max-width:110px;padding:6px 8px}
+  .nav-time{display:none}
+
+  /* Mobile kanban: scroll-snap single column */
+  .kanban{
+    flex-wrap:nowrap;gap:12px;overflow-x:auto;padding:0 0 24px;min-height:auto;
+    scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;
+    scrollbar-width:none;
+  }
+  .kanban::-webkit-scrollbar{display:none}
+  .kanban-col{flex:0 0 85vw;max-width:360px;scroll-snap-align:start;min-width:auto}
+  .kanban-col h3{font-size:16px;margin-bottom:10px;padding-bottom:8px}
+
+  /* Stage indicator */
+  .stage-indicator{display:flex}
+
+  /* Cards: larger touch targets */
+  .card{padding:14px 12px;margin-bottom:10px}
+  .card .c-actions button,.card .c-actions select{font-size:13px;padding:8px 0;min-height:44px}
+  .card .c-actions .move-select{display:block}
+  .card .c-actions .ctrl-btn{min-width:44px}
+
+  /* FAB */
+  .fab{display:block}
+
+  /* Modal → Bottom Sheet */
+  .modal-mask{align-items:flex-end}
+  .modal{width:100%;max-width:none;max-height:90vh;border-radius:20px 20px 0 0;padding:24px 20px 20px;animation:slideUp .3s ease-out}
+  .modal .form-grid{grid-template-columns:1fr}
+  .modal .form-actions{flex-wrap:wrap}
+  .modal .form-actions button{flex:1;min-width:80px}
+  @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+
+  /* Alert strip: stack vertically */
+  .alert-strip{flex-direction:column;gap:10px}
+  .alert-card{min-width:auto}
+
+  /* Desktop-only: hide drag hint on empty kanban */
+  .kanban-cards:empty::after{content:'暂无项目'}
+}
+
+/* ── TABLET (768px - 1023px) ── */
+@media(min-width:768px) and (max-width:1023px){
+  .kanban{flex-wrap:wrap}
+  .kanban-col{flex:1 1 45%;min-width:260px}
+}
+
+/* ── DESKTOP (1024px+) ── */
+@media(min-width:1024px){
+  .app{max-width:90vw}.kanban-col{flex:1;min-width:220px}
+}
+
+@media(min-width:1600px){.app{max-width:90vw}}
+
+/* ═══════════════ ACCESSIBILITY ═══════════════ */
+:focus-visible{outline:2px solid var(--accent-ring);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- NAV -->
+  <nav class="nav">
+    <div class="nav-brand"><span class="dot"></span><span class="brand-text">Demo Pipeline</span></div>
+    <button class="nav-btn active" id="btn-kanban" onclick="switchView('kanban')">Demo 看板</button>
+    <button class="nav-btn" id="btn-intent" onclick="switchView('intent')">意向客户看板</button>
+    <button class="nav-btn" id="btn-table" onclick="switchView('table')">表格</button>
+    <button class="nav-btn primary" onclick="openModal()">新增项目</button>
+    <select class="nav-select" id="filter-type" onchange="onTypeFilterChange()">
+      <option value="">全部类型</option>
+      <option value="Demo（客户端）">Demo（客户端）</option>
+      <option value="Demo（公司端）">Demo（公司端）</option>
+      <option value="意向客户">意向客户</option>
+    </select>
+    <select class="nav-select" id="filter-stage" onchange="renderAll()">
+      <option value="">全部阶段</option>
+    </select>
+    <span class="nav-badge danger" id="count-od" style="display:none"></span>
+    <span class="nav-badge warn" id="count-sn" style="display:none"></span>
+    <span class="sync-dot" id="sync-dot" title="云端同步状态"></span>
+    <span class="nav-time" id="clock"></span>
+  </nav>
+
+  <!-- STAGE INDICATOR (MOBILE) -->
+  <div class="stage-indicator" id="stage-indicator"></div>
+
+  <!-- PERMISSION BAR -->
+  <div class="permission-bar" id="perm-bar">
+    <span>开启浏览器通知，到期/超期时自动提醒</span>
+    <button onclick="requestNotification()">开启通知</button>
+  </div>
+
+  <!-- ALERT STRIP -->
+  <div class="alert-strip" id="alert-strip"></div>
+
+  <!-- KANBAN -->
+  <div class="view active" id="view-kanban"><div class="kanban" id="kanban"></div></div>
+
+  <!-- INTENT KANBAN -->
+  <div class="view" id="view-intent"><div class="kanban" id="intent-kanban"></div></div>
+
+  <!-- TABLE -->
+  <div class="view" id="view-table"><div class="table-wrap"><table><thead id="thead"></thead><tbody id="tbody"></tbody></table></div></div>
+
+  <!-- MODAL -->
+  <div class="modal-mask" id="modal-mask" onclick="if(event.target===this)closeModal()">
+    <div class="modal" id="modal"><h2 id="modal-title">新建项目</h2><form id="modal-form"></form></div>
+  </div>
+
+  <!-- FAB (MOBILE ONLY) -->
+  <button class="fab" onclick="openModal()" title="新增项目" aria-label="新增项目">+</button>
+</div>
+
+<script>
+/* ═══════════════ SUPABASE ═══════════════ */
+const SB_URL = 'https://pfgmpguepyszqmeuzirc.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBmZ21wZ3VlcHlzenFtZXV6aXJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NDAyNjQsImV4cCI6MjA5OTIxNjI2NH0.txpzcNaFh9Jc9lMTEy_vZIW8GkbPTWMeAtspsi-yu2Y';
+const sb = supabase.createClient(SB_URL, SB_KEY);
+
+/* ═══════════════ STATE ═══════════════ */
+const STAGE_MAP = {
+  'Demo（客户端）': ['已拜访','已对接技术交流/等待实验','实验进行中','实验已完成','项目成功','实验失败'],
+  'Demo（公司端）': ['已拜访','已对接技术交流/等待实验','实验进行中','实验已完成','项目成功','实验失败'],
+  '意向客户':      ['已拜访','已提交报价单及参数配置','已挂采购意向','正在招标','已中标','搁置']
+};
+const CLIENT_TYPES = ['Demo（客户端）','Demo（公司端）','意向客户'];
+const ALL_STAGES = [...new Set(Object.values(STAGE_MAP).flat())];
+const CLOSED_STAGES = ['已中标','项目成功','实验失败','搁置'];
+const DEMO_TYPES = ['Demo（客户端）','Demo（公司端）'];
+const INTENT_PRODUCTS = [
+  '高通量单细胞光导系统 LyKIPP','高通量单细胞光导系统 LyPLEX','高通量单细胞光导系统 LyTARs',
+  '全光谱流式细胞仪 OMNIS Spector-5','全光谱流式细胞仪 OMNIS Spector-4','全光谱流式细胞仪 OMNIS Spector-3',
+  '全光谱流式细胞仪 OMNIS Spector-2','全光谱流式细胞仪 OMNIS Spector-1','快速蛋白稳定性分析仪 PS-1'
+];
+let projects = [];
+let view = 'kanban';
+let editingId = null;
+
+/* ═══════════════ DATA ═══════════════ */
+function today(){return new Date().toISOString().slice(0,10)}
+function daysTo(d){if(!d)return Infinity;const t=new Date(d+'T00:00:00');const n=new Date();n.setHours(0,0,0,0);return Math.ceil((t-n)/86400000)}
+function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+
+async function loadData(){
+  const dot = document.getElementById('sync-dot');
+  dot.classList.add('syncing');
+  try {
+    const { data, error } = await sb.from('projects').select('*').order('created_at',{ascending:true});
+    if(error) throw error;
+    // snake_case → camelCase
+    projects = (data||[]).map(r=>({
+      id:r.id, name:r.name, productType:r.product_type, client:r.client,
+      orgUnit:r.org_unit, clientType:r.client_type, clientPriority:r.client_priority,
+      stage:r.stage, priority:r.priority, isPaid:r.is_paid||'', contact:r.contact||'',
+      note:r.note||'', reminderDate:r.reminder_date||'', demoDate:r.demo_date||'',
+      created:r.created_at||'', lastFollowUp:r.last_follow_up||''
+    }));
+    dot.classList.remove('syncing','error');
+    renderAll();
+  } catch(e) {
+    console.error('加载数据失败:',e);
+    dot.classList.remove('syncing');dot.classList.add('error');
+    // 回退到 localStorage（如果 Supabase 不可用）
+    const raw = localStorage.getItem('demo-tracker-data');
+    if(raw){try{projects=JSON.parse(raw);renderAll()}catch(ex){}}
+  }
+}
+
+async function saveData(changedRecord){
+  const dot = document.getElementById('sync-dot');
+  dot.classList.add('syncing');
+  try {
+    if(changedRecord){
+      // 只 upsert 变更的那条
+      const row = toSnake(changedRecord);
+      const { error } = await sb.from('projects').upsert(row,{onConflict:'id'});
+      if(error) throw error;
+    } else {
+      // 全量 upsert
+      const rows = projects.map(toSnake);
+      const { error } = await sb.from('projects').upsert(rows,{onConflict:'id'});
+      if(error) throw error;
+    }
+    // 同时写 localStorage 作为离线缓存
+    localStorage.setItem('demo-tracker-data',JSON.stringify(projects,null,2));
+    dot.classList.remove('syncing','error');
+    renderAll();
+  } catch(e) {
+    console.error('保存失败:',e);
+    dot.classList.remove('syncing');dot.classList.add('error');
+    // 降级到 localStorage
+    localStorage.setItem('demo-tracker-data',JSON.stringify(projects,null,2));
+    renderAll();
+  }
+}
+
+function toSnake(p){
+  return {
+    id:p.id, name:p.name, product_type:p.productType, client:p.client,
+    org_unit:p.orgUnit, client_type:p.clientType, client_priority:p.clientPriority,
+    stage:p.stage, priority:p.priority, is_paid:p.isPaid||'', contact:p.contact||'',
+    note:p.note||'', reminder_date:p.reminderDate||'', demo_date:p.demoDate||'',
+    created_at:p.created||'', last_follow_up:p.lastFollowUp||''
+  };
+}
+
+/* ═══════════════ EXPORT / IMPORT ═══════════════ */
+function exportJSON(){
+  const b=new Blob([JSON.stringify(projects,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);
+  a.download='demo-tracker-data.json';a.click();URL.revokeObjectURL(a.href)
+}
+function importJSON(){
+  const i=document.createElement('input');i.type='file';i.accept='.json';
+  i.onchange=e=>{const f=e.target.files[0];const r=new FileReader();r.onload=ev=>{try{projects=JSON.parse(ev.target.result);saveData()}catch(ex){alert('JSON 格式错误')}};r.readAsText(f)};i.click()
+}
+
+/* ═══════════════ FILTERS ═══════════════ */
+function getOverdue(){
+  const t=today();return projects.filter(p=>!CLOSED_STAGES.includes(p.stage)&&p.lastFollowUp&&p.lastFollowUp<t)
+}
+function getSoon(){return projects.filter(p=>{const d=daysTo(p.reminderDate);return d>=0&&d<=3})}
+function getDueToday(){return projects.filter(p=>p.reminderDate===today()||p.demoDate===today())}
+
+/* ═══════════════ RENDER ═══════════════ */
+function getActiveStages(){
+  const tf=document.getElementById('filter-type').value;
+  const sf=document.getElementById('filter-stage').value;
+  let stages;
+  if(tf){stages=STAGE_MAP[tf]||[]}else{
+    const seen=new Set();stages=[];
+    CLIENT_TYPES.forEach(ct=>{(STAGE_MAP[ct]||[]).forEach(s=>{if(!seen.has(s)){seen.add(s);stages.push(s)}})});
+  }
+  if(sf)stages=stages.filter(s=>s===sf);
+  return stages;
+}
+
+function updateStageFilter(){
+  const tf=document.getElementById('filter-type').value;
+  const sel=document.getElementById('filter-stage');const cur=sel.value;
+  const stages=tf?(STAGE_MAP[tf]||[]):ALL_STAGES;
+  sel.innerHTML='<option value="">全部阶段</option>'+stages.map(s=>`<option value="${s}" ${s===cur?'selected':''}>${s}</option>`).join('');
+}
+
+function onTypeFilterChange(){updateStageFilter();renderAll()}
+
+function renderAll(){
+  const tf=document.getElementById('filter-type').value;
+  renderAlerts(tf);
+  if(view==='kanban')renderKanban('kanban',DEMO_TYPES);
+  else if(view==='intent')renderKanban('intent-kanban',['意向客户']);
+  else renderTable(tf);
+  updateStageIndicator();
+  updateBadges();
+}
+
+function updateBadges(){
+  const od=getOverdue(),sn=getSoon();
+  const eO=document.getElementById('count-od'),eS=document.getElementById('count-sn');
+  eO.style.display=od.length?'inline-flex':'none';eO.textContent='超期 '+od.length;
+  eS.style.display=sn.length?'inline-flex':'none';eS.textContent='将到期 '+sn.length
+}
+
+function renderAlerts(tf){
+  let filtered=projects;if(tf)filtered=projects.filter(p=>p.clientType===tf);
+  const od=filtered.filter(p=>!CLOSED_STAGES.includes(p.stage)&&p.lastFollowUp&&p.lastFollowUp<today());
+  const dt=filtered.filter(p=>p.reminderDate===today()||p.demoDate===today());
+  const sn=filtered.filter(p=>{const d=daysTo(p.reminderDate);return d>=0&&d<=3});
+
+  let h='';
+  if(dt.length){
+    h+='<div class="alert-card danger"><h4>今日到期</h4><ul>';
+    dt.forEach(p=>{const r=[p.reminderDate===today()?'提醒':null,p.demoDate===today()?'Demo':null].filter(Boolean).join(' / ');h+=`<li><b>${p.name}</b> ${p.orgUnit?'- '+p.orgUnit:''} - ${r}</li>`});
+    h+='</ul></div>'
+  }
+  if(od.length){
+    od.sort((a,b)=>daysTo(a.lastFollowUp)-daysTo(b.lastFollowUp));
+    const MAX_VISIBLE=2;const collapsed=od.length>MAX_VISIBLE;const uid='od-'+Date.now();
+    h+=`<div class="alert-card danger"><h4>超期未跟进 <span style="font-weight:400;font-size:13px;color:var(--text-muted)">${od.length}条</span></h4><ul id="${uid}">`;
+    od.forEach((p,i)=>{const d=daysTo(p.lastFollowUp);const cls=(collapsed&&i>=MAX_VISIBLE)?' class="od-collapsed" style="display:none"':'';h+=`<li${cls}><b>${p.name}</b> ${p.orgUnit?'- '+p.orgUnit:''} - <b>${Math.abs(d)}天</b>未跟进 - ${p.stage}</li>`});
+    h+='</ul>';
+    if(collapsed){h+=`<button class="od-toggle" onclick="toggleOD('${uid}',this)" style="margin-top:4px;padding:3px 10px;border:1px solid var(--border);border-radius:4px;background:var(--surface-2);color:var(--text-secondary);cursor:pointer;font:13px var(--font);font-weight:600">展开全部 ${od.length} 条 ▾</button>`}
+    h+='</div>'
+  }
+  if(sn.length){
+    h+='<div class="alert-card warn"><h4>3天内提醒</h4><ul>';
+    sn.forEach(p=>{h+=`<li><b>${p.name}</b> - ${p.reminderDate} - 剩余${daysTo(p.reminderDate)}天</li>`});
+    h+='</ul></div>'
+  }
+  if(!h)h='<div class="alert-card info"><h4>一切就绪</h4><p style="font-size:13px;color:var(--text-muted)">当前没有到期或超期项目</p></div>';
+  document.getElementById('alert-strip').innerHTML=h
+}
+
+/* ─── STAGE INDICATOR (MOBILE) ─── */
+function updateStageIndicator(){
+  const el=document.getElementById('stage-indicator');
+  const stages=getActiveStages();
+  if(!stages.length){el.innerHTML='';return}
+  let h='';
+  stages.forEach((s,i)=>{
+    let cnt=0;
+    if(view==='table') return; // 表格模式不更新 indicator
+    const tf=document.getElementById('filter-type').value;
+    const typeFilter=view==='intent'?['意向客户']:DEMO_TYPES;
+    const filtered=projects.filter(p=>typeFilter.includes(p.clientType));
+    cnt=filtered.filter(p=>p.stage===s).length;
+    h+=`<button class="stage-pill${i===0?' active':''}" onclick="scrollToStage('${esc(s)}')">${s}<span class="pill-count"> ${cnt}</span></button>`;
+  });
+  el.innerHTML=h;
+}
+
+function scrollToStage(stage){
+  const cols=document.querySelectorAll('.kanban-col');
+  cols.forEach(col=>{if(col.dataset.stage===stage)col.scrollIntoView({behavior:'smooth',inline:'start',block:'nearest'})});
+  // update active pill
+  document.querySelectorAll('.stage-pill').forEach(p=>p.classList.remove('active'));
+  const pills=document.querySelectorAll('.stage-pill');
+  pills.forEach(p=>{if(p.textContent.trim().startsWith(stage))p.classList.add('active')});
+}
+
+/* ─── KANBAN ─── */
+function renderKanban(containerId, typeFilter){
+  let filtered=projects.filter(p=>typeFilter.includes(p.clientType));
+  const stages=getActiveStagesFor(typeFilter);
+  const container=document.getElementById(containerId);
+  const isMobile=window.matchMedia('(max-width:767px)').matches;
+  let h='';
+  stages.forEach(stage=>{
+    const items=filtered.filter(p=>p.stage===stage);
+    h+=`<div class="kanban-col" data-stage="${stage}"><h3>${stage}<span class="count${items.length===0?' zero':''}">${items.length}</span></h3><div class="kanban-cards" data-stage="${stage}">`;
+    items.forEach(p=>{h+=cardHTML(p,isMobile)});
+    h+='</div></div>'
+  });
+  container.innerHTML=h;
+
+  // Desktop: enable SortableJS; Mobile: skip
+  if(window.matchMedia('(min-width:768px)').matches){
+    container.querySelectorAll('.kanban-cards').forEach(el=>{
+      new Sortable(el,{group:'projects',animation:200,ghostClass:'dragging',onEnd:ev=>{
+        const pid=ev.item.dataset.id;const ns=ev.to.dataset.stage;
+        const p=projects.find(x=>x.id===pid);if(p&&p.stage!==ns){p.stage=ns;saveData(p)}
+      }})
+    })
+  }
+
+  // Mobile: IntersectionObserver for stage indicator
+  if(isMobile){
+    const observer=new IntersectionObserver((entries)=>{
+      entries.forEach(entry=>{
+        if(entry.isIntersecting){
+          const s=entry.target.dataset.stage;
+          document.querySelectorAll('.stage-pill').forEach(p=>{p.classList.remove('active')});
+          const pills=document.querySelectorAll('.stage-pill');
+          pills.forEach(p=>{if(p.textContent.trim().startsWith(s))p.classList.add('active')});
+        }
+      });
+    },{threshold:0.6});
+    container.querySelectorAll('.kanban-col').forEach(col=>observer.observe(col));
+  }
+}
+
+function getActiveStagesFor(typeFilter){
+  const sf=document.getElementById('filter-stage').value;
+  const seen=new Set();let stages=[];
+  typeFilter.forEach(ct=>{(STAGE_MAP[ct]||[]).forEach(s=>{if(!seen.has(s)){seen.add(s);stages.push(s)}})});
+  if(sf)stages=stages.filter(s=>s===sf);
+  return stages;
+}
+
+function cardHTML(p, isMobile){
+  let tags='';
+  if(p.clientType)tags+=`<span class="tag">${p.clientType}</span>`;
+  if(p.clientPriority==='A')tags+='<span class="tag accent">A类</span>';
+  else if(p.clientPriority==='B')tags+='<span class="tag">B类</span>';
+  if(p.priority==='高')tags+='<span class="tag high">高优先</span>';
+  else if(p.priority==='中')tags+='<span class="tag mid">中优先</span>';
+  if(DEMO_TYPES.includes(p.clientType)&&p.isPaid){
+    tags+=p.isPaid==='收费'?'<span class="tag success">收费</span>':'<span class="tag">免费</span>';
+  }
+
+  let dates='';
+  if(p.reminderDate){const d=daysTo(p.reminderDate);const c=d<0?'od':d<=3?'sn':'';dates+=`<span class="${c}">提醒 ${p.reminderDate} ${d<0?`<b>超${Math.abs(d)}天</b>`:d===0?'<b>今天</b>':`<b>${d}天</b>`}</span><br>`}
+  if(p.demoDate)dates+=`<span>Demo ${p.demoDate}</span><br>`;
+  if(p.lastFollowUp){const d=daysTo(p.lastFollowUp);dates+=`<span class="${d<0?'od':''}">跟进 ${p.lastFollowUp} ${d<0?`(${Math.abs(d)}天前)`:`(${d}天前)`}</span>`}
+
+  // Determine available stages for move dropdown
+  const stageList = (STAGE_MAP[p.clientType]||ALL_STAGES).filter(s=>s!==p.stage);
+  const moveOpts = '<option value="">移动到...</option>'+stageList.map(s=>`<option value="${s}">${s}</option>`).join('');
+
+  return `<div class="card" data-id="${p.id}">
+    <div class="c-name">${p.name}</div>
+    <div class="c-client">${p.client||'-'} ${p.orgUnit?'<span style="color:var(--text-muted)">- '+p.orgUnit+'</span>':''}</div>
+    ${tags?'<div class="c-meta">'+tags+'</div>':''}
+    ${dates?'<div class="c-dates">'+dates+'</div>':''}
+    <div class="c-actions">
+      <button class="ctrl-btn" onclick="event.stopPropagation();openModal('${p.id}')">编辑</button>
+      <button class="ctrl-btn" onclick="event.stopPropagation();quickFollow('${p.id}')">标记跟进</button>
+      <select class="move-select" onchange="moveToStage('${p.id}',this.value);this.value=''">${moveOpts}</select>
+    </div>
+  </div>`
+}
+
+function moveToStage(id, newStage){
+  if(!newStage)return;
+  const p=projects.find(x=>x.id===id);
+  if(p){p.stage=newStage;saveData(p)}
+}
+
+/* ═══════════════ TABLE ═══════════════ */
+function renderTable(tf){
+  let filtered=projects;if(tf)filtered=projects.filter(p=>p.clientType===tf);
+  const DEMO_COLS=[
+    {k:'name',l:'项目名称'},{k:'client',l:'联系人'},{k:'orgUnit',l:'客户单位'},
+    {k:'clientType',l:'类型'},{k:'isPaid',l:'收费'},{k:'clientPriority',l:'客户等级'},
+    {k:'stage',l:'阶段'},{k:'priority',l:'优先级'},{k:'reminderDate',l:'提醒日期'},
+    {k:'demoDate',l:'Demo排期'},{k:'lastFollowUp',l:'最近跟进'},{k:'actions',l:'操作'}
+  ];
+  const cols=tf&&!DEMO_TYPES.includes(tf)?DEMO_COLS.filter(c=>c.k!=='isPaid'&&c.k!=='demoDate'):DEMO_COLS;
+  document.getElementById('thead').innerHTML='<tr>'+cols.map(c=>c.k==='actions'?`<th>${c.l}</th>`:`<th onclick="sortBy('${c.k}')">${c.l}</th>`).join('')+'</tr>';
+  const t=today();
+  document.getElementById('tbody').innerHTML=filtered.map(p=>{
+    const od=!CLOSED_STAGES.includes(p.stage)&&p.lastFollowUp&&p.lastFollowUp<t;
+    return `<tr class="${od?'od-row':''}">${cols.map(c=>renderCell(p,c,t)).join('')}</tr>`;
+  }).join('')
+}
+
+const SELECT_FIELDS={clientType:CLIENT_TYPES,isPaid:['','收费','免费'],clientPriority:['','A','B','C'],priority:['','高','中','低']};
+const DATE_FIELDS=new Set(['reminderDate','demoDate','lastFollowUp']);
+
+function renderCell(p,col,todayStr){
+  const k=col.k,val=p[k]||'';
+  if(k==='actions'){return `<td><button class="tbl-del-btn" onclick="event.stopPropagation();deleteFromTable('${p.id}')">删除</button></td>`}
+  if(k==='name'){return `<td style="font-weight:550;cursor:pointer" onclick="openModal('${p.id}')" title="点击编辑">${val||'-'}</td>`}
+  if(k==='client'||k==='orgUnit'){return `<td>${val||'-'}</td>`}
+  if(SELECT_FIELDS[k]){const opts=SELECT_FIELDS[k].map(o=>`<option value="${o}" ${o===val?'selected':''}>${o||'请选择'}</option>`).join('');return `<td><select onchange="updateField('${p.id}','${k}',this.value)" style="width:100%;padding:3px 4px;border:1px solid var(--border);border-radius:3px;font:13px var(--font);background:var(--surface-1);color:var(--text-primary);cursor:pointer">${opts}</select></td>`}
+  if(k==='stage'){const stages=STAGE_MAP[p.clientType]||ALL_STAGES;const opts=stages.map(o=>`<option value="${o}" ${o===val?'selected':''}>${o}</option>`).join('');return `<td><select onchange="updateField('${p.id}','stage',this.value)" style="width:100%;padding:3px 4px;border:1px solid var(--border);border-radius:3px;font:13px var(--font);background:var(--surface-1);color:var(--text-primary);cursor:pointer">${opts}</select></td>`}
+  if(DATE_FIELDS.has(k)){const color=(k==='reminderDate'&&val)?(daysTo(val)<0?'color:var(--danger)':daysTo(val)<=3?'color:var(--warning)':''):(k==='lastFollowUp'&&val&&val<todayStr?'color:var(--danger)':'');return `<td style="${color}"><input type="date" value="${val}" onchange="updateField('${p.id}','${k}',this.value)" style="width:100%;padding:3px 4px;border:1px solid var(--border);border-radius:3px;font:13px var(--font);background:var(--surface-1);color:var(--text-primary);cursor:pointer"></td>`}
+  return `<td>${val||'-'}</td>`
+}
+
+function updateField(id,field,value){
+  const p=projects.find(x=>x.id===id);if(!p)return;
+  p[field]=value;
+  if(field==='clientType'){if(!DEMO_TYPES.includes(value))p.isPaid='';if(value!=='意向客户')p.productType='';const newStages=STAGE_MAP[value]||[];if(!newStages.includes(p.stage))p.stage=newStages[0]||'已拜访'}
+  saveData(p);
+}
+
+function sortBy(k){projects.sort((a,b)=>(a[k]||'')>(b[k]||'')?1:-1);renderAll()}
+
+/* ═══════════════ VIEW SWITCH ═══════════════ */
+function switchView(v){
+  view=v;
+  document.getElementById('view-kanban').style.display=v==='kanban'?'block':'none';
+  document.getElementById('view-intent').style.display=v==='intent'?'block':'none';
+  document.getElementById('view-table').style.display=v==='table'?'block':'none';
+  document.getElementById('btn-kanban').classList.toggle('active',v==='kanban');
+  document.getElementById('btn-intent').classList.toggle('active',v==='intent');
+  document.getElementById('btn-table').classList.toggle('active',v==='table');
+  renderAll()
+}
+
+/* ═══════════════ MODAL ═══════════════ */
+function openModal(id){
+  const p=id?projects.find(x=>x.id===id):null;
+  editingId=id||null;
+  document.getElementById('modal-title').textContent=p?'编辑项目':'新建项目';
+  document.getElementById('modal-form').innerHTML=formHTML(p);
+  document.getElementById('modal-mask').classList.add('show')
+}
+
+function closeModal(){document.getElementById('modal-mask').classList.remove('show');editingId=null}
+
+function formHTML(p){
+  const v=k=>p?p[k]||'':'';
+  const ct=v('clientType');const isDemo=DEMO_TYPES.includes(ct);const isIntent=ct==='意向客户';
+  const stages=ct?STAGE_MAP[ct]:['已拜访'];const selStage=v('stage')||'已拜访';
+  let stageOpts=stages.map(o=>`<option value="${o}" ${o===selStage?'selected':''}>${o}</option>`).join('');
+  if(selStage&&!stages.includes(selStage)){stageOpts=`<option value="${selStage}" selected>${selStage}</option>`+stageOpts}
+  setTimeout(()=>{
+    const pg=document.getElementById('form-paid-group');if(pg)pg.style.display=isDemo?'':'none';
+    const ig=document.getElementById('form-intent-product-group');if(ig)ig.style.display=isIntent?'':'none';
+  },0);
+  return `<div class="form-grid">
+    <div><label>项目名称 *</label><input name="name" value="${esc(v('name'))}" required></div>
+    <div><label>客户名称 *</label><input name="client" value="${esc(v('client'))}" required></div>
+    <div><label>客户单位</label><input name="orgUnit" value="${esc(v('orgUnit'))}"></div>
+    <div><label>项目类型</label><select name="clientType" onchange="onFormTypeChange()">${opts(CLIENT_TYPES,ct)}</select></div>
+    <div id="form-paid-group"><label>是否收费</label><select name="isPaid">${opts(['','收费','免费'],v('isPaid'))}</select></div>
+    <div id="form-intent-product-group"><label>意向仪器</label><select name="productType">${opts([''].concat(INTENT_PRODUCTS),v('productType'))}</select></div>
+    <div><label>阶段状态</label><select name="stage">${stageOpts}</select></div>
+    <div><label>客户优先级</label><select name="clientPriority">${opts(['','A','B','C'],v('clientPriority'))}</select></div>
+    <div><label>联系人</label><input name="contact" value="${esc(v('contact'))}"></div>
+    <div><label>项目优先级</label><select name="priority">${opts(['','高','中','低'],v('priority'))}</select></div>
+    <div><label>提醒日期</label><input type="date" name="reminderDate" value="${v('reminderDate')}"></div>
+    <div><label>Demo 排期</label><input type="date" name="demoDate" value="${v('demoDate')}"></div>
+    <div><label>最近跟进</label><input type="date" name="lastFollowUp" value="${v('lastFollowUp')}"></div>
+    <div class="full"><label>备注</label><textarea name="note">${v('note')}</textarea></div>
+  </div>
+  <div class="form-actions">
+    ${editingId?'<button type="button" class="btn-delete" onclick="deleteProject()">删除项目</button>':''}
+    <button type="button" class="btn-cancel" onclick="closeModal()">取消</button><button type="submit" class="btn-save">保存</button>
+  </div>`
+}
+function esc(s){return s.replace(/"/g,'&quot;').replace(/</g,'&lt;')}
+function opts(arr,sel){return arr.map(o=>`<option value="${o}" ${o===sel?'selected':''}>${o||'请选择'}</option>`).join('')}
+
+/* ═══════════════ FORM SUBMIT ═══════════════ */
+document.getElementById('modal-form').addEventListener('submit',e=>{
+  e.preventDefault();const f=e.target;const n=today();
+  const data={
+    id:editingId||genId(),name:f.name.value.trim(),client:f.client.value.trim(),
+    orgUnit:f.orgUnit.value.trim(),clientType:f.clientType.value,
+    isPaid:f.querySelector('[name="isPaid"]')?f.isPaid.value:'',
+    productType:f.querySelector('[name="productType"]')?f.productType.value:'',
+    clientPriority:f.clientPriority.value,
+    stage:f.stage.value||'已拜访',priority:f.priority.value,
+    contact:f.contact.value,note:f.note.value,
+    reminderDate:f.reminderDate.value,demoDate:f.demoDate.value,
+    lastFollowUp:f.lastFollowUp.value,
+    created:editingId?(projects.find(p=>p.id===editingId)?.created||n):n
+  };
+  if(!data.name||!data.client){alert('请填写项目名称和客户名称');return}
+  if(editingId){const i=projects.findIndex(p=>p.id===editingId);if(i>=0)projects[i]=data}
+  else projects.push(data);
+  saveData(data);closeModal()
+})
+
+function deleteProject(){
+  if(!editingId||!confirm('确认删除此项目？'))return;
+  const p=projects.find(x=>x.id===editingId);
+  projects=projects.filter(p=>p.id!==editingId);
+  sb.from('projects').delete().eq('id',editingId).then(()=>{}).catch(e=>console.error('删除失败:',e));
+  localStorage.setItem('demo-tracker-data',JSON.stringify(projects,null,2));
+  renderAll();closeModal()
+}
+
+function deleteFromTable(id){deleteProjectById(id)}
+function deleteProjectById(id){
+  if(!confirm('确认删除此项目？此操作不可撤销。'))return;
+  projects=projects.filter(p=>p.id!==id);
+  sb.from('projects').delete().eq('id',id).then(()=>{}).catch(e=>console.error('删除失败:',e));
+  localStorage.setItem('demo-tracker-data',JSON.stringify(projects,null,2));
+  renderAll();
+}
+
+function quickFollow(id){const p=projects.find(x=>x.id===id);if(p){p.lastFollowUp=today();saveData(p)}}
+function toggleOD(ulId,btn){
+  const ul=document.getElementById(ulId);const items=ul.querySelectorAll('.od-collapsed');
+  const isOpen=items[0]&&items[0].style.display!=='none';
+  if(isOpen){items.forEach(li=>li.style.display='none');btn.textContent=btn.textContent.replace('收起','展开').replace('▴','▾')}
+  else{items.forEach(li=>li.style.display='');btn.textContent=btn.textContent.replace('展开','收起').replace('▾','▴')}
+}
+
+/* ═══════════════ FORM TYPE CHANGE ═══════════════ */
+function onFormTypeChange(){
+  const f=document.getElementById('modal-form');const ct=f.clientType.value;
+  const isDemo=DEMO_TYPES.includes(ct);const isIntent=ct==='意向客户';
+  const stages=ct?STAGE_MAP[ct]:['已拜访'];const curStage=f.stage.value;
+  f.stage.innerHTML=stages.map(o=>`<option value="${o}" ${o===curStage?'selected':''}>${o}</option>`).join('');
+  if(curStage&&!stages.includes(curStage)){f.stage.innerHTML=`<option value="${curStage}" selected>${curStage}</option>`+f.stage.innerHTML}
+  const paidGroup=document.getElementById('form-paid-group');if(paidGroup){paidGroup.style.display=isDemo?'':'none';if(!isDemo&&f.isPaid)f.isPaid.value=''}
+  const intentGroup=document.getElementById('form-intent-product-group');if(intentGroup){intentGroup.style.display=isIntent?'':'none';if(!isIntent&&f.productType)f.productType.value=''}
+}
+
+/* ═══════════════ NOTIFICATIONS ═══════════════ */
+function requestNotification(){
+  if(!('Notification' in window))return;
+  Notification.requestPermission().then(perm=>{
+    if(perm==='granted'){document.getElementById('perm-bar').style.display='none';new Notification('通知已开启',{body:'将在项目到期或超期时提醒您'})}
+  })
+}
+function checkNotify(){
+  if(!('Notification' in window)||Notification.permission!=='granted'){document.getElementById('perm-bar').style.display='block';return}
+  document.getElementById('perm-bar').style.display='none';
+  const items=[...getDueToday(),...getOverdue()];
+  if(items.length&&(!window._ln||Date.now()-window._ln>3e5)){
+    window._ln=Date.now();
+    const body=items.slice(0,3).map(p=>p.name+' - '+p.client).join('\n')+(items.length>3?'\n...等'+items.length+'项':'');
+    new Notification(items.length+' 个项目需要关注',{body,tag:'demo-pipeline'})
+  }
+}
+
+/* ═══════════════ CLOCK ═══════════════ */
+function tick(){document.getElementById('clock').textContent=new Date().toLocaleString('zh-CN',{hour12:false})}
+setInterval(tick,1e3);tick();
+
+/* ═══════════════ INIT ═══════════════ */
+document.addEventListener('DOMContentLoaded',()=>{
+  loadData();
+  updateStageFilter();
+  if('Notification' in window&&Notification.permission==='default')document.getElementById('perm-bar').style.display='flex';
+  if('Notification' in window&&Notification.permission==='granted')document.getElementById('perm-bar').style.display='none';
+  setTimeout(checkNotify,1500)
+})
+</script>
+</body>
+</html>
